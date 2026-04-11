@@ -14,7 +14,7 @@ export const orderShema = z.object({
     })
   ),
   address: z.string().optional(),
-  email: z.string().optional(),
+  email: z.any().optional(),
   phone_number: z.string().optional(),
   secPhone_number: z.string().optional(),
   governorate: z.string().optional(),
