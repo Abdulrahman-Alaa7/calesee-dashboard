@@ -7,6 +7,8 @@ export const GET_RECENT_ORDERS: DocumentNode = gql`
         id
         fullName
         email
+        totalPrice
+        shippingPrice
         items {
           quantity
           price

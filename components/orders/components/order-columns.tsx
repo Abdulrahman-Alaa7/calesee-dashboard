@@ -7,44 +7,39 @@ import Act from "./act";
 import { statuses } from "../data/orders";
 import { Badge } from "../../ui/badge";
 import { format } from "timeago.js";
-import { GET_SETTINGS } from "../../../graphql/actions/queries/settings/getSettings";
-import { useQuery } from "@apollo/client";
+import { Truck } from "lucide-react";
 
-const sumPrice = (order: any[]) => {
-  let TotalPrice = 0;
-  for (let i = 0; i < order.length; i++) {
-    TotalPrice += order[i].price * order[i].quantity;
-  }
-  return TotalPrice;
-};
-
-const useThePrice = () => {
-  const { loading: settingsLoading, data } = useQuery(GET_SETTINGS);
-  const shippingPrice = data?.getSettings[0]?.shippingPrice;
-  const freeShippingPrice = data?.getSettings[0]?.freeShippingPrice;
-  return { shippingPrice, freeShippingPrice, loading: settingsLoading };
+const calculateFallbackTotal = (items: any[]) => {
+  return items.reduce((acc, item) => {
+    const price = Number(item.price) || 0;
+    const qty = Number(item.quantity) || 0;
+    return acc + price * qty;
+  }, 0);
 };
 
 const TotalPriceCell = ({ row }: any) => {
-  const { shippingPrice, freeShippingPrice, loading } = useThePrice();
-  const totalPrice = sumPrice(row.original.items);
+  const totalPrice = Number(row.original.totalPrice) || 0;
+  const shippingPrice = Number(row.original.shippingPrice) || 0;
+
+  const fallbackTotal = calculateFallbackTotal(row.original.items);
+
+  const finalTotal = totalPrice > 0 ? totalPrice : fallbackTotal;
 
   return (
-    <div className="flex space-x-2">
-      <span className="max-w-[500px] truncate font-medium">
-        EGP{" "}
-        {loading
-          ? "..."
-          : `${
-              totalPrice > freeShippingPrice
-                ? totalPrice
-                : totalPrice + shippingPrice
-            }`}
+    <div className="flex flex-col justify-start items-start gap-2">
+      <span className="max-w-[500px] truncate font-bold border p-2 h-8 rounded-3xl flex justify-center items-center">
+        EGP {finalTotal}
+      </span>
+
+      <span className="flex items-center gap-1 max-w-[500px] truncate font-medium text-primary border p-2 h-8 rounded-3xl">
+        <Truck size={14} />
+        <span className="font-bold">
+          {shippingPrice > 0 ? `EGP ${shippingPrice}` : "—"}
+        </span>
       </span>
     </div>
   );
 };
-
 export const columns: ColumnDef<Order>[] = [
   {
     accessorKey: "id",
@@ -90,7 +85,7 @@ export const columns: ColumnDef<Order>[] = [
     ),
     cell: ({ row }) => {
       const status = statuses.find(
-        (status) => status.value === row.getValue("status")
+        (status) => status.value === row.getValue("status"),
       );
 
       if (!status) {

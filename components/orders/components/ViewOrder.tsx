@@ -80,20 +80,20 @@ const ViewOrder: FC<Props> = ({ id }) => {
     DELETE_ORDER,
     {
       refetchQueries: [{ query: GET_ORDERS }],
-    }
+    },
   );
 
   const [updateOrderStatus, { loading: updateOrderLoading }] = useMutation(
     UPDATE_ORDER,
     {
       refetchQueries: [{ query: GET_ORDERS }],
-    }
+    },
   );
 
   const viewData = data?.getOrderById;
   const orderItems = useMemo(
     () => data?.getOrderById?.items ?? [],
-    [data?.getOrderById?.items]
+    [data?.getOrderById?.items],
   );
 
   const defaultShippingPrice: number =
@@ -102,9 +102,8 @@ const ViewOrder: FC<Props> = ({ id }) => {
     settingsData?.getSettings?.[0]?.freeShippingPrice ??
     Number.MAX_SAFE_INTEGER;
 
-  const [fetchShippingPrice, { data: shippingPriceData }] = useLazyQuery(
-    GET_SHIPPING_PRICE
-  );
+  const [fetchShippingPrice, { data: shippingPriceData }] =
+    useLazyQuery(GET_SHIPPING_PRICE);
 
   useEffect(() => {
     if (viewData?.governorate) {
@@ -115,22 +114,13 @@ const ViewOrder: FC<Props> = ({ id }) => {
   const shippingPrice: number =
     shippingPriceData?.getShippingPrice?.price ?? defaultShippingPrice;
 
-  const itemsTotal = useMemo(() => {
-    return orderItems.reduce(
-      (total: number, item: any) => total + item.price * item.quantity,
-      0
-    );
-  }, [orderItems]);
-
-  const computedShippingCost = useMemo(() => {
-    if (itemsTotal === 0) return 0;
-    return itemsTotal >= freeShippingPrice ? 0 : shippingPrice;
-  }, [itemsTotal, freeShippingPrice, shippingPrice]);
-
-  const grandTotal = useMemo(
-    () => itemsTotal + computedShippingCost,
-    [itemsTotal, computedShippingCost]
-  );
+  const calculateFallbackTotal = (items: any[]) => {
+    return items.reduce((acc, item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.quantity) || 0;
+      return acc + price * qty;
+    }, 0);
+  };
 
   const form = useForm<StatusFormValues>({
     resolver: zodResolver(statusSchema),
@@ -187,6 +177,17 @@ const ViewOrder: FC<Props> = ({ id }) => {
   };
 
   const isLoading = getOrderByIdLoading;
+
+  const rawTotalPrice = Number(viewData?.totalPrice);
+  const rawShippingPrice = Number(viewData?.shippingPrice);
+
+  const fallbackTotal = calculateFallbackTotal(orderItems);
+
+  const hasValidBackendPrice = !isNaN(rawTotalPrice) && rawTotalPrice > 0;
+
+  const finalTotal = hasValidBackendPrice ? rawTotalPrice : fallbackTotal;
+
+  const finalShipping = hasValidBackendPrice ? rawShippingPrice : null;
 
   return (
     <div className="flex-1 pt-4 pb-8">
@@ -343,9 +344,9 @@ const ViewOrder: FC<Props> = ({ id }) => {
                       <TableCell className="text-right">
                         {settingsLoading
                           ? "..."
-                          : computedShippingCost === 0
-                          ? "Free"
-                          : `EGP ${computedShippingCost}`}
+                          : finalShipping && finalShipping > 0
+                            ? `EGP ${finalShipping}`
+                            : "—"}
                       </TableCell>
                     </TableRow>
 
@@ -354,7 +355,7 @@ const ViewOrder: FC<Props> = ({ id }) => {
                         Total
                       </TableCell>
                       <TableCell className="text-right">
-                        {settingsLoading ? "..." : `EGP ${grandTotal}`}
+                        {settingsLoading ? "..." : `EGP ${finalTotal}`}{" "}
                       </TableCell>
                     </TableRow>
                   </TableBody>

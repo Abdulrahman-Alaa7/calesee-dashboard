@@ -13,6 +13,8 @@ export const GET_ORDER_BY_ID: DocumentNode = gql`
       address
       secAddress
       note
+      totalPrice
+      shippingPrice
       items {
         name
         img
