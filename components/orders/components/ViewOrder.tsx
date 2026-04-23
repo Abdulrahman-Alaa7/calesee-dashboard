@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@apollo/client";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
 import { toast } from "sonner";
 
 import { Button } from "../../ui/button";
@@ -49,6 +49,7 @@ import {
 
 import { GET_ORDER_BY_ID } from "../../../graphql/actions/queries/orders/getOrderById";
 import { GET_SETTINGS } from "../../../graphql/actions/queries/settings/getSettings";
+import { GET_SHIPPING_PRICE } from "../../../graphql/actions/queries/settings/getShippingPrice";
 import { GET_ORDERS } from "../../../graphql/actions/queries/orders/getOrders";
 import { DELETE_ORDER } from "../../../graphql/actions/mutations/orders/deleteOrder";
 import { UPDATE_ORDER } from "../../../graphql/actions/mutations/orders/updateOrder";
@@ -95,11 +96,24 @@ const ViewOrder: FC<Props> = ({ id }) => {
     [data?.getOrderById?.items]
   );
 
-  const shippingPrice: number =
-    settingsData?.getSettings?.[0]?.shippingPrice ?? 0;
+  const defaultShippingPrice: number =
+    settingsData?.getSettings?.[0]?.defaultShippingPrice ?? 0;
   const freeShippingPrice: number =
     settingsData?.getSettings?.[0]?.freeShippingPrice ??
     Number.MAX_SAFE_INTEGER;
+
+  const [fetchShippingPrice, { data: shippingPriceData }] = useLazyQuery(
+    GET_SHIPPING_PRICE
+  );
+
+  useEffect(() => {
+    if (viewData?.governorate) {
+      fetchShippingPrice({ variables: { governorate: viewData.governorate } });
+    }
+  }, [viewData?.governorate, fetchShippingPrice]);
+
+  const shippingPrice: number =
+    shippingPriceData?.getShippingPrice?.price ?? defaultShippingPrice;
 
   const itemsTotal = useMemo(() => {
     return orderItems.reduce(
@@ -110,7 +124,7 @@ const ViewOrder: FC<Props> = ({ id }) => {
 
   const computedShippingCost = useMemo(() => {
     if (itemsTotal === 0) return 0;
-    return itemsTotal > freeShippingPrice ? 0 : shippingPrice;
+    return itemsTotal >= freeShippingPrice ? 0 : shippingPrice;
   }, [itemsTotal, freeShippingPrice, shippingPrice]);
 
   const grandTotal = useMemo(
@@ -234,22 +248,6 @@ const ViewOrder: FC<Props> = ({ id }) => {
                   <InfoRow label="City">{viewData?.city ?? "-"}</InfoRow>
 
                   <InfoRow label="Address">{viewData?.address ?? "-"}</InfoRow>
-
-                  {viewData?.secGovernorate && (
-                    <InfoRow
-                      changeColor
-                      label="Sec Governorate"
-                      variant="outline"
-                    >
-                      {viewData?.secGovernorate}
-                    </InfoRow>
-                  )}
-
-                  {viewData?.secCity && (
-                    <InfoRow changeColor label="Sec City" variant="outline">
-                      {viewData?.secCity}
-                    </InfoRow>
-                  )}
 
                   {viewData?.secAddress && (
                     <InfoRow changeColor label="Sec Address" variant="outline">

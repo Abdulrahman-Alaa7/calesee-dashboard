@@ -48,6 +48,15 @@ export const PRODUCT_FIELDS = gql`
         updatedAt
       }
     }
+    reviews {
+      id
+      name
+      comment
+      rating
+      imageUrl
+      status
+      createdAt
+    }
     createdAt
     updatedAt
   }

@@ -17,7 +17,7 @@ import {
 import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
 import MainLoading from "./ui/main-loading";
-import { Bell, CheckCheck, ShoppingBag, Trash2 } from "lucide-react";
+import { Bell, CheckCheck, ShoppingBag, Trash2, Star } from "lucide-react";
 import { GET_NOTIFICATIONS } from "../graphql/actions/queries/notification/getNotifications";
 import { GET_ORDERS } from "../graphql/actions/queries/orders/getOrders";
 import { GET_RECENT_ORDERS } from "../graphql/actions/queries/analysis/getRecntOrders";
@@ -26,6 +26,7 @@ import { DELETE_NOTIFICATION } from "@/graphql/actions/mutations/notification/de
 import { DELETE_ALL_NOTIFICATIONS } from "@/graphql/actions/mutations/notification/deleteAllNotifications";
 import { MARK_NOTIFICATION } from "@/graphql/actions/mutations/notification/updateNotification";
 import { useApolloClient } from "@apollo/client";
+import { GET_REVIEWS_BY_ID } from "@/graphql/actions/queries/reviews/getReviews";
 
 let socket: any;
 
@@ -58,7 +59,7 @@ const Notifications = () => {
     useMutation(MARK_NOTIFICATION);
 
   const [markAllNotification, { loading: markAllNotiLoading }] = useMutation(
-    MARK_ALL_NOTIFICATION
+    MARK_ALL_NOTIFICATION,
   );
 
   const [deleteNotification, { loading: deleteNotiLoading }] =
@@ -75,7 +76,7 @@ const Notifications = () => {
 
   useEffect(() => {
     const audioElement = document.getElementById(
-      "notification_sound"
+      "notification_sound",
     ) as HTMLAudioElement | null;
 
     if (!process.env.NEXT_PUBLIC_SOCKET_SERVER_URL) return;
@@ -85,7 +86,17 @@ const Notifications = () => {
     socket.on("newNotification", (newNotification: NotificationType) => {
       setNotifications((prev) => [newNotification, ...prev]);
       refetchNotifications();
-      refetchOrdersData();
+      const isReview = newNotification.message.toLowerCase().includes("review");
+
+      if (isReview) {
+        void apolloClient.query({
+          query: GET_REVIEWS_BY_ID,
+          variables: { productId: newNotification.theId },
+          fetchPolicy: "network-only",
+        });
+      } else {
+        refetchOrdersData();
+      }
 
       if (audioElement) {
         audioElement.currentTime = 0;
@@ -98,7 +109,7 @@ const Notifications = () => {
     return () => {
       if (socket) socket.disconnect();
     };
-  }, [refetchNotifications, refetchOrdersData]);
+  }, [refetchNotifications, refetchOrdersData, apolloClient]);
 
   const unReadCount = notifications.filter((n) => !n.status).length;
 
@@ -240,7 +251,12 @@ const Notifications = () => {
               notifications.map((noti, index) => {
                 const isUnread = !noti.status;
 
-                const href = `/dashboard/orders/${noti.theId}`;
+                const isReview = noti.message.toLowerCase().includes("review");
+
+                const href = isReview
+                  ? `/dashboard/products/${noti.theId}/reviews`
+                  : `/dashboard/orders/${noti.theId}`;
+
                 const key = noti.id || `notification-${index}`;
 
                 return (
@@ -252,7 +268,11 @@ const Notifications = () => {
                         }`}
                       >
                         <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
-                          <ShoppingBag className="h-5 w-5" />
+                          {isReview ? (
+                            <Star className="h-5 w-5" />
+                          ) : (
+                            <ShoppingBag className="h-5 w-5" />
+                          )}
                           {isUnread && (
                             <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-background" />
                           )}

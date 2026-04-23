@@ -6,7 +6,8 @@ import { DataTableRowActions } from "./products-table-row-actions";
 import Act from "./act-products";
 import { Badge } from "../../ui/badge";
 import Image from "next/image";
-import { EyeOffIcon, Gift, ArchiveX } from "lucide-react";
+import { EyeOffIcon, Gift, ArchiveX, Star } from "lucide-react";
+import Link from "next/link";
 
 export const columns: ColumnDef<Product>[] = [
   {
@@ -107,6 +108,32 @@ export const columns: ColumnDef<Product>[] = [
     },
   },
   {
+    accessorKey: "reviews",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Reviews" />
+    ),
+    cell: ({ row }) => {
+      return (
+        <Link
+          href={`/dashboard/products/${row.original.id}/reviews`}
+          className="flex w-fit py-[4px] items-center gap-2 text-white bg-secondary hover:bg-secondary/80 cursor-pointer p-2 rounded-xl"
+        >
+          <Star size={15} className="text-yellow-400" />
+          <span>
+            <span className="text-black font-bold">
+              {row.original.reviews?.length ?? 0}
+            </span>
+          </span>
+        </Link>
+      );
+    },
+    enableSorting: false,
+
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id));
+    },
+  },
+  {
     accessorKey: "purchased",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Purchased" />
@@ -122,6 +149,7 @@ export const columns: ColumnDef<Product>[] = [
       return value.includes(row.getValue(id));
     },
   },
+
   {
     accessorKey: "price",
     header: ({ column }) => (

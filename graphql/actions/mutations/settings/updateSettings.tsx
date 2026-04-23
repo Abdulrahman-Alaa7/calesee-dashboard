@@ -3,8 +3,8 @@ import { gql, DocumentNode } from "@apollo/client";
 export const UPDATE_SETTINGS: DocumentNode = gql`
   mutation updateSettings(
     $id: String!
-    $shippingPrice: Float!
-    $freeShippingPrice: Float!
+    $defaultShippingPrice: Int!
+    $freeShippingPrice: Int!
     $freeShipDescEn: String!
     $freeShipDescAr: String!
     $address: String
@@ -13,7 +13,7 @@ export const UPDATE_SETTINGS: DocumentNode = gql`
     updateSettings(
       settingsUpdateDto: {
         id: $id
-        shippingPrice: $shippingPrice
+        defaultShippingPrice: $defaultShippingPrice
         freeShippingPrice: $freeShippingPrice
         freeShipDescEn: $freeShipDescEn
         freeShipDescAr: $freeShipDescAr
@@ -23,7 +23,7 @@ export const UPDATE_SETTINGS: DocumentNode = gql`
     ) {
       settings {
         id
-        shippingPrice
+        defaultShippingPrice
       }
     }
   }

@@ -28,8 +28,6 @@ const DownloadOrders = () => {
         Governorate: order.governorate,
         City: order.city,
         "Secondary Address": order.secAddress,
-        "Secondary City": order.secCity,
-        "Secondary Governorate": order.secGovernorate,
         "Secondary Phone Number": order.secPhone_number,
         Note: order.note,
         Status: order.status,
@@ -50,8 +48,6 @@ const DownloadOrders = () => {
           Governorate: "",
           City: "",
           "Secondary Address": "",
-          "Secondary City": "",
-          "Secondary Governorate": "",
           "Secondary Phone Number": "",
           Note: "",
           Status: "",
@@ -78,8 +74,6 @@ const DownloadOrders = () => {
       { wch: 15 }, // Governorate
       { wch: 15 }, // City
       { wch: 30 }, // Secondary Address
-      { wch: 15 }, // Secondary City
-      { wch: 15 }, // Secondary Governorate
       { wch: 15 }, // Secondary Phone Number
       { wch: 30 }, // Note
       { wch: 10 }, // Status

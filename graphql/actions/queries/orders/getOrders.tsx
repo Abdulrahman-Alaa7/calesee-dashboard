@@ -9,9 +9,7 @@ export const GET_ORDERS: DocumentNode = gql`
       phone_number
       secPhone_number
       governorate
-      secGovernorate
       city
-      secCity
       address
       secAddress
       note

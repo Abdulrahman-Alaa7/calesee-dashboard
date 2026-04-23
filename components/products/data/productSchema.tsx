@@ -17,4 +17,11 @@ export type Product = {
     isMain: boolean;
     linkedColorHex?: string | null;
   }[];
+  reviews?: {
+    id: string;
+    rating: number;
+    comment: string;
+    imageUrl?: string | null;
+    status: "Pending" | "Approved" | "Rejected";
+  }[];
 };

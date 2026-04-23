@@ -1,5 +1,5 @@
 "use client";
-import React, { FC, useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Switch } from "../ui/switch";
 import {
   Card,
@@ -29,69 +29,44 @@ import { UPDATE_SETTINGS } from "../../graphql/actions/mutations/settings/update
 import client from "../../graphql/gql.setup";
 import MainLoading from "../ui/main-loading";
 
-type Props = {};
-
-const LockSettings = (props: Props) => {
+const LockSettings = () => {
   const { loading: settingsLoading, data } = useQuery(GET_SETTINGS);
   const [updateSettings, { loading }] = useMutation(UPDATE_SETTINGS);
 
   const refetchSettingsData = async () => {
-    await client.refetchQueries({
-      include: [GET_SETTINGS],
-    });
+    await client.refetchQueries({ include: [GET_SETTINGS] });
   };
 
   const accountSchema = z.object({
     shippingEn: z
       .string()
-      .min(7, {
-        message: `Shipping text must be at least 8 characters`,
-      })
-      .max(150, {
-        message: `Shipping text must not exceed 150 letters`,
-      }),
+      .min(7, { message: "Shipping text must be at least 8 characters" })
+      .max(150, { message: "Shipping text must not exceed 150 letters" }),
     shippingAr: z
       .string()
-      .min(7, {
-        message: `جملة الشحن العربية لا يجب أن تقل عن 8 أحرف`,
-      })
-      .max(150, {
-        message: `جملة الشحن العربية لا يجب أن تزيد عن 150 حرفًا`,
-      }),
+      .min(7, { message: "جملة الشحن العربية لا يجب أن تقل عن 8 أحرف" })
+      .max(150, { message: "جملة الشحن العربية لا يجب أن تزيد عن 150 حرفًا" }),
     address: z
       .string()
-      .min(3, { message: `Address must be at least 3 characters` })
-      .max(150, {
-        message: `Address must not exceed 150 letters`,
-      }),
+      .min(3, { message: "Address must be at least 3 characters" })
+      .max(150, { message: "Address must not exceed 150 letters" }),
     lock: z.boolean().default(false),
-    shippingPrice: z.coerce.number(),
-    freeShippingPrice: z.coerce.number(),
+    defaultShippingPrice: z.coerce.number().int().min(0),
+    freeShippingPrice: z.coerce.number().int().min(0),
   });
 
-  type accountValue = z.infer<typeof accountSchema>;
+  type AccountValue = z.infer<typeof accountSchema>;
 
-  // const defaultValues: Partial<accountValue> = {
-  //   shippingEn: "",
-  //   shippingAr: "",
-  //   address: "",
-  //   shippingPrice: 0,
-  //   freeShippingPrice: 0,
-  //   lock: false,
-  // };
-
-  const defaultValues: Partial<accountValue> = {
-    shippingEn: data?.getSettings[0]?.freeShipDescEn ?? "",
-    shippingAr: data?.getSettings[0]?.freeShipDescAr ?? "",
-    address: data?.getSettings[0]?.address ?? "",
-    shippingPrice: data?.getSettings[0]?.shippingPrice ?? 0,
-    freeShippingPrice: data?.getSettings[0]?.freeShippingPrice ?? 0,
-    lock: data?.getSettings[0]?.airPlaneMode ?? false,
-  };
-
-  const form = useForm<accountValue>({
+  const form = useForm<AccountValue>({
     resolver: zodResolver(accountSchema),
-    defaultValues,
+    defaultValues: {
+      shippingEn: "",
+      shippingAr: "",
+      address: "",
+      defaultShippingPrice: 0,
+      freeShippingPrice: 0,
+      lock: false,
+    },
     mode: "onChange",
   });
 
@@ -101,32 +76,30 @@ const LockSettings = (props: Props) => {
         shippingEn: data?.getSettings[0]?.freeShipDescEn ?? "",
         shippingAr: data?.getSettings[0]?.freeShipDescAr ?? "",
         address: data?.getSettings[0]?.address ?? "",
-        shippingPrice: data?.getSettings[0]?.shippingPrice ?? 0,
+        defaultShippingPrice: data?.getSettings[0]?.defaultShippingPrice ?? 0,
         freeShippingPrice: data?.getSettings[0]?.freeShippingPrice ?? 0,
         lock: data?.getSettings[0]?.airPlaneMode ?? false,
       });
     }
   }, [data, form]);
 
-  const onSubmit: SubmitHandler<accountValue> = async (formData) => {
+  const onSubmit: SubmitHandler<AccountValue> = async (formData) => {
     try {
-      const SettingsData: any = {
-        id: data?.getSettings[0].id,
-        shippingPrice: formData?.shippingPrice,
-        freeShippingPrice: formData?.freeShippingPrice,
-        freeShipDescEn: formData?.shippingEn,
-        freeShipDescAr: formData?.shippingAr,
-        address: formData?.address,
-        airPlaneMode: formData?.lock,
-      };
-
       await updateSettings({
-        variables: SettingsData,
+        variables: {
+          id: data?.getSettings[0].id,
+          defaultShippingPrice: formData.defaultShippingPrice,
+          freeShippingPrice: formData.freeShippingPrice,
+          freeShipDescEn: formData.shippingEn,
+          freeShipDescAr: formData.shippingAr,
+          address: formData.address,
+          airPlaneMode: formData.lock,
+        },
         refetchQueries: [{ query: GET_SETTINGS }],
       });
 
       refetchSettingsData();
-      toast.success(" Settings updated successfully");
+      toast.success("Settings updated successfully");
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -152,134 +125,133 @@ const LockSettings = (props: Props) => {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="w-full space-y-6"
               >
-                <div>
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="shippingPrice"
-                      render={({ field }) => (
-                        <FormItem className="w-full lg:w-[70%] mx-auto">
-                          <FormLabel>Shipping Price</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="55"
-                              {...field}
-                              value={field.value ?? ""}
-                              className="py-6"
-                              disabled={loading}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="freeShippingPrice"
-                      render={({ field }) => (
-                        <FormItem className="w-full lg:w-[70%] mx-auto">
-                          <FormLabel>Free Shipping Price</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="700"
-                              {...field}
-                              value={field.value ?? ""}
-                              className="py-6"
-                              disabled={loading}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="shippingEn"
-                      render={({ field }) => (
-                        <FormItem className="w-full lg:w-[70%] mx-auto">
-                          <FormLabel>Free Shipping Desc (EN)</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Write a Free Shipping Desc"
-                              {...field}
-                              value={field.value ?? ""}
-                              className="py-6"
-                              disabled={loading}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="shippingAr"
-                      render={({ field }) => (
-                        <FormItem
-                          className="w-full lg:w-[70%] text-right mx-auto"
-                          dir="rtl"
-                        >
-                          <FormLabel className="text-[18px]">
-                            وصف الشحن
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="defaultShippingPrice"
+                    render={({ field }) => (
+                      <FormItem className="w-full lg:w-[70%] mx-auto">
+                        <FormLabel>Default Shipping Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="55"
+                            {...field}
+                            value={field.value ?? ""}
+                            className="py-6"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Used when no per-governorate price is set.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="freeShippingPrice"
+                    render={({ field }) => (
+                      <FormItem className="w-full lg:w-[70%] mx-auto">
+                        <FormLabel>Free Shipping Threshold</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="700"
+                            {...field}
+                            value={field.value ?? ""}
+                            className="py-6"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="shippingEn"
+                    render={({ field }) => (
+                      <FormItem className="w-full lg:w-[70%] mx-auto">
+                        <FormLabel>Free Shipping Desc (EN)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Write a Free Shipping Desc"
+                            {...field}
+                            value={field.value ?? ""}
+                            className="py-6"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="shippingAr"
+                    render={({ field }) => (
+                      <FormItem
+                        className="w-full lg:w-[70%] text-right mx-auto"
+                        dir="rtl"
+                      >
+                        <FormLabel className="text-[18px]">وصف الشحن</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="اكتب وصف للشحن المجاني"
+                            {...field}
+                            value={field.value ?? ""}
+                            className="py-6"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem className="w-full lg:w-[70%] mx-auto">
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Write an Address"
+                            {...field}
+                            value={field.value ?? ""}
+                            className="py-6"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lock"
+                    render={({ field }) => (
+                      <FormItem className="w-full lg:w-[70%] mx-auto flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">
+                            Airplane mode
                           </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="اكتب وصف للشحن المجاني"
-                              {...field}
-                              value={field.value ?? ""}
-                              className="py-6"
-                              disabled={loading}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem className="w-full lg:w-[70%] mx-auto">
-                          <FormLabel>Location</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Write an Address"
-                              {...field}
-                              value={field.value ?? ""}
-                              className="py-6"
-                              disabled={loading}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="lock"
-                      render={({ field }) => (
-                        <FormItem className="w-full lg:w-[70%] mx-auto flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">
-                              Airplane mode
-                            </FormLabel>
-                            <FormDescription className="text-sm">
-                              Open or lock receiving orders from here.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={loading}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                          <FormDescription className="text-sm">
+                            Open or lock receiving orders from here.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={loading}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 <Button
                   className="mx-auto w-[250px] flex justify-center items-center"

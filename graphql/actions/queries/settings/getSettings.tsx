@@ -4,7 +4,7 @@ export const GET_SETTINGS: DocumentNode = gql`
   query {
     getSettings {
       id
-      shippingPrice
+      defaultShippingPrice
       freeShippingPrice
       freeShipDescEn
       freeShipDescAr

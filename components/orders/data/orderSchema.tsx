@@ -11,7 +11,7 @@ export const orderShema = z.object({
       quantity: z.number(),
       color: z.string().optional(),
       size: z.string().optional(),
-    })
+    }),
   ),
   address: z.string().optional(),
   email: z.any().optional(),
@@ -20,8 +20,6 @@ export const orderShema = z.object({
   governorate: z.string().optional(),
   city: z.string().optional(),
   secAddress: z.string().optional(),
-  secGovernorate: z.string().optional(),
-  secCity: z.string().optional(),
   note: z.string().optional(),
   status: z.string().optional(),
 });
